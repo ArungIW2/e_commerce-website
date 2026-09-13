@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Address;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
@@ -15,102 +16,94 @@ use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
+    private const SHIPPING_METHODS = [
+        'standard' => ['label' => 'Standard (2–5 hari)', 'cost' => 15000],
+        'express' => ['label' => 'Express (1–2 hari)', 'cost' => 30000],
+        'pickup' => ['label' => 'Ambil di toko', 'cost' => 0],
+    ];
+
+    private const PAYMENT_METHODS = [
+        'manual' => 'Transfer bank / pembayaran manual',
+        'cod' => 'Cash on Delivery (COD)',
+    ];
+
     public function show(Request $request): View|RedirectResponse
     {
         $cart = Cart::where('user_id', Auth::id())->with('items.product')->first();
         $items = $cart?->items->filter(fn ($item) => $item->product?->is_active && $item->product->stock > 0)->values() ?? collect();
-
-        if ($items->isEmpty()) {
-            return redirect()->route('cart')->withErrors(['cart' => 'Keranjang masih kosong.']);
-        }
+        if ($items->isEmpty()) return redirect()->route('cart')->withErrors(['cart' => 'Keranjang masih kosong.']);
 
         $items->each(fn ($item) => $item->quantity = min($item->quantity, $item->product->stock));
         $subtotal = $items->sum(fn ($item) => $item->product->price * $item->quantity);
         $addresses = Auth::user()->addresses()->latest('is_default')->latest()->get();
+        $shippingMethods = self::SHIPPING_METHODS;
+        $paymentMethods = self::PAYMENT_METHODS;
 
-        return view('store.checkout', compact('items', 'subtotal', 'addresses'));
+        return view('store.checkout', compact('items', 'subtotal', 'addresses', 'shippingMethods', 'paymentMethods'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'address_id' => ['nullable', 'integer', 'exists:addresses,id'],
-            'label' => ['nullable', 'string', 'max:50'],
-            'recipient_name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:30'],
-            'address_line' => ['nullable', 'string'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
+            'label' => ['nullable', 'string', 'max:50'], 'recipient_name' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'], 'address_line' => ['nullable', 'string'],
+            'city' => ['nullable', 'string', 'max:255'], 'state' => ['nullable', 'string', 'max:255'],
             'postal_code' => ['nullable', 'string', 'max:10'],
+            'shipping_method' => ['required', 'in:'.implode(',', array_keys(self::SHIPPING_METHODS))],
+            'payment_method' => ['required', 'in:'.implode(',', array_keys(self::PAYMENT_METHODS))],
+            'coupon_code' => ['nullable', 'string', 'max:50'],
         ]);
 
         $order = DB::transaction(function () use ($request, $validated) {
             $user = $request->user();
-            $address = null;
+            $address = !empty($validated['address_id'])
+                ? $user->addresses()->findOrFail($validated['address_id']) : null;
 
-            if (! empty($validated['address_id'])) {
-                $address = $user->addresses()->findOrFail($validated['address_id']);
-            } else {
-                $data = collect($validated)->only(['label', 'recipient_name', 'phone', 'address_line', 'city', 'state', 'postal_code'])->all();
-                foreach (['recipient_name', 'phone', 'address_line', 'city', 'postal_code'] as $field) {
-                    if (empty($data[$field])) abort(422, 'Data alamat belum lengkap.');
-                }
-                $data['label'] = $data['label'] ?? 'Rumah';
-                $data['user_id'] = $user->id;
-                $data['is_default'] = ! $user->addresses()->exists();
+            if (!$address) {
+                $data = collect($validated)->only(['label','recipient_name','phone','address_line','city','state','postal_code'])->all();
+                foreach (['recipient_name','phone','address_line','city','postal_code'] as $field) if (empty($data[$field])) abort(422, 'Data alamat belum lengkap.');
+                $data['label'] = $data['label'] ?? 'Rumah'; $data['user_id'] = $user->id; $data['is_default'] = !$user->addresses()->exists();
                 if ($data['is_default']) $user->addresses()->update(['is_default' => false]);
                 $address = Address::create($data);
             }
 
             $cart = Cart::where('user_id', $user->id)->with('items')->firstOrFail();
-            $cartItems = $cart->items;
-            if ($cartItems->isEmpty()) abort(422, 'Keranjang kosong.');
+            if ($cart->items->isEmpty()) abort(422, 'Keranjang kosong.');
 
-            $orderLines = [];
-            $subtotal = 0;
-            foreach ($cartItems as $cartItem) {
+            $orderLines = []; $subtotal = 0;
+            foreach ($cart->items as $cartItem) {
                 $product = Product::whereKey($cartItem->product_id)->lockForUpdate()->first();
-                if (! $product || ! $product->is_active || $product->stock < $cartItem->quantity) {
-                    abort(422, "Stok produk {$cartItem->product_id} tidak mencukupi.");
-                }
-
-                $lineTotal = $product->price * $cartItem->quantity;
-                $subtotal += $lineTotal;
-                $orderLines[] = compact('product', 'cartItem', 'lineTotal');
+                if (!$product || !$product->is_active || $product->stock < $cartItem->quantity) abort(422, "Stok produk {$cartItem->product_id} tidak mencukupi.");
+                $lineTotal = $product->price * $cartItem->quantity; $subtotal += $lineTotal;
+                $orderLines[] = compact('product','cartItem','lineTotal');
             }
 
-            $order = Order::create([
-                'user_id' => $user->id,
-                'order_number' => 'TMP-' . Str::upper(Str::random(16)),
-                'status' => 'pending',
-                'subtotal' => $subtotal,
-                'shipping_cost' => 0,
-                'discount' => 0,
-                'total' => $subtotal,
-                'recipient_name' => $address->recipient_name,
-                'phone' => $address->phone,
-                'address_line' => $address->address_line,
-                'city' => $address->city,
-                'state' => $address->state,
-                'postal_code' => $address->postal_code,
-            ]);
+            $coupon = null; $discount = 0;
+            if (!empty($validated['coupon_code'])) {
+                $coupon = Coupon::where('code', Str::upper(trim($validated['coupon_code'])))->lockForUpdate()->first();
+                if (!$coupon || !$coupon->isValidFor((float) $subtotal)) abort(422, 'Kupon tidak valid, sudah habis, atau tidak memenuhi syarat.');
+                $discount = $coupon->calculateDiscount((float) $subtotal);
+            }
 
-            $order->update(['order_number' => 'ORD-' . now()->format('Ymd') . '-' . str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
+            $shipping = self::SHIPPING_METHODS[$validated['shipping_method']]['cost'];
+            $total = max(0, $subtotal + $shipping - $discount);
+            $order = Order::create([
+                'user_id' => $user->id, 'order_number' => 'TMP-'.Str::upper(Str::random(16)), 'status' => 'pending',
+                'subtotal' => $subtotal, 'shipping_cost' => $shipping, 'shipping_method' => $validated['shipping_method'],
+                'discount' => $discount, 'coupon_code' => $coupon?->code, 'total' => $total,
+                'payment_method' => $validated['payment_method'], 'payment_status' => 'unpaid',
+                'recipient_name' => $address->recipient_name, 'phone' => $address->phone, 'address_line' => $address->address_line,
+                'city' => $address->city, 'state' => $address->state, 'postal_code' => $address->postal_code,
+            ]);
+            $order->update(['order_number' => 'ORD-'.now()->format('Ymd').'-'.str_pad((string)$order->id, 6, '0', STR_PAD_LEFT)]);
 
             foreach ($orderLines as $line) {
-                $product = $line['product'];
-                $quantity = $line['cartItem']->quantity;
-                $order->items()->create([
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'sku' => $product->sku,
-                    'price' => $product->price,
-                    'quantity' => $quantity,
-                    'line_total' => $line['lineTotal'],
-                ]);
+                $product = $line['product']; $quantity = $line['cartItem']->quantity;
+                $order->items()->create(['product_id'=>$product->id,'product_name'=>$product->name,'sku'=>$product->sku,'price'=>$product->price,'quantity'=>$quantity,'line_total'=>$line['lineTotal']]);
                 $product->decrement('stock', $quantity);
             }
-
+            if ($coupon) $coupon->increment('used_count');
             $cart->items()->delete();
             return $order;
         });
