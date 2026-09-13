@@ -15,6 +15,7 @@
         <a href="{{ route('admin.dashboard') }}">Dashboard</a>
         <a href="{{ route('admin.products.index') }}">Products</a>
         <a href="{{ route('admin.categories.index') }}">Categories</a>
+        <a href="{{ route('admin.orders.index') }}">Orders</a>
         <a href="{{ route('home') }}">View Store</a>
     </aside>
     <main class="main">
@@ -23,6 +24,7 @@
             <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn secondary" type="submit">Logout</button></form>
         </div>
         @if(session('success'))<div class="alert">{{ session('success') }}</div>@endif
+        @if(session('status'))<div class="alert">{{ session('status') }}</div>@endif
         @if($errors->any())<div class="errors"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
         @yield('content')
     </main>
