@@ -1,35 +1,3 @@
 <!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ $title ?? 'Laravel Commerce' }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-50 text-slate-900">
-<header class="border-b bg-white">
-    <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-        <a href="{{ route('home') }}" class="text-2xl font-black">Laravel<span class="text-indigo-600">Commerce</span></a>
-        <nav class="flex items-center gap-5 text-sm font-semibold">
-            <a href="{{ route('products.index') }}">Products</a>
-            <a href="{{ route('cart') }}">Cart</a>
-            @auth
-                <a href="{{ route('account.dashboard') }}">Account</a>
-                @if (auth()->user()->isAdmin())
-                    <a href="{{ route('admin.dashboard') }}" class="text-indigo-600">Admin</a>
-                @endif
-                <form method="POST" action="{{ route('logout') }}" class="inline">
-                    @csrf
-                    <button type="submit" class="text-slate-500 hover:text-slate-900">Logout</button>
-                </form>
-            @else
-                <a href="{{ route('login') }}">Login</a>
-                <a href="{{ route('register') }}" class="rounded-lg bg-slate-900 px-3 py-2 text-white">Register</a>
-            @endauth
-        </nav>
-    </div>
-</header>
-<main>@yield('content')</main>
-<footer class="mt-20 border-t bg-white"><div class="mx-auto max-w-7xl px-6 py-8 text-sm text-slate-500">Laravel Commerce · PrestaShop-inspired e-commerce foundation</div></footer>
-</body>
-</html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ $title ?? 'Laravel Commerce' }}</title><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-slate-50 text-slate-900"><header class="border-b bg-white"><div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5"><a href="{{ route('home') }}" class="text-2xl font-black">Laravel<span class="text-indigo-600">Commerce</span></a><nav class="flex items-center gap-5 text-sm font-semibold"><a href="{{ route('products.index') }}">Products</a><a href="{{ route('cart') }}">Cart</a>@auth<a href="{{ route('account.dashboard') }}">Account</a>@if(auth()->user()->isAdmin())<a href="{{ route('admin.dashboard') }}" class="text-indigo-600">Admin</a>@endif<form method="POST" action="{{ route('logout') }}" class="inline">@csrf<button type="submit" class="text-slate-500 hover:text-slate-900">Logout</button></form>@else<a href="{{ route('login') }}">Login</a><a href="{{ route('register') }}" class="rounded-lg bg-slate-900 px-3 py-2 text-white">Register</a>@endauth</nav></div></header><main>@if(session('status'))<div class="mx-auto max-w-7xl px-6 pt-6"><div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{{ session('status') }}</div></div>@endif@if($errors->has('cart'))<div class="mx-auto max-w-7xl px-6 pt-6"><div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ $errors->first('cart') }}</div></div>@endif @yield('content')</main><footer class="mt-20 border-t bg-white"><div class="mx-auto max-w-7xl px-6 py-8 text-sm text-slate-500">Laravel Commerce · PrestaShop-inspired e-commerce foundation</div></footer></body></html>
