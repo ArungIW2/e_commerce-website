@@ -18,6 +18,7 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Admin dashboard and catalog/inventory management
 - Product image gallery with upload, primary-image selection and deletion
 - Customer wishlist with duplicate protection, removal and add-to-cart flow
+- Midtrans Snap payment integration with webhook signature verification
 
 ## Product image storage
 Uploaded product images use Laravel's `public` filesystem disk. After installing the project, create the public storage symlink:
@@ -27,6 +28,17 @@ php artisan storage:link
 ```
 
 The image manager accepts JPEG, PNG and WebP files up to 4 MB.
+
+## Midtrans configuration
+Create/configure a Midtrans merchant account, then copy the server and client keys into `.env`:
+
+```env
+MIDTRANS_SERVER_KEY=
+MIDTRANS_CLIENT_KEY=
+MIDTRANS_IS_PRODUCTION=false
+```
+
+Use `false` for Sandbox during development. Configure the Midtrans HTTP notification URL to your deployed application's `/payments/midtrans/notification` endpoint. Never commit the server key.
 
 ## Local setup
 ```bash
@@ -45,9 +57,10 @@ Then open http://localhost:8000.
 The seeded development account is `admin@example.com` with password `password`. Change or remove these credentials before production deployment.
 
 ## Roadmap
-1. Real payment gateway integration
-2. Courier/shipping API integration
-3. Automated feature/unit tests and security hardening
-4. Reporting and analytics dashboard
-5. REST API
-6. Docker + CI/CD
+1. ~~Wishlist~~
+2. ~~Real payment gateway integration~~
+3. Courier/shipping API integration
+4. Automated feature/unit tests and security hardening
+5. Reporting and analytics dashboard
+6. REST API
+7. Docker + CI/CD
