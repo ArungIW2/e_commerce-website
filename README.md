@@ -14,6 +14,10 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Persistent cart with guest-cart merge
 - Checkout, addresses, orders, cancellation and fulfillment status
 - Live multi-courier shipping rates through Biteship
+- Server-side shipping re-quote before order creation
+- Biteship shipping order creation with waybill/tracking capture
+- Biteship `order.status` / `order.waybill_id` webhook synchronization
+- Customer tracking link and admin shipment controls
 - Shipping courier/service and shipping cost snapshots on orders
 - Shipping fallback methods retained for backwards compatibility
 - Payment status and coupons
@@ -45,18 +49,27 @@ MIDTRANS_IS_PRODUCTION=false
 Use `false` for Sandbox during development. Configure the Midtrans HTTP notification URL to your deployed application's `/payments/midtrans/notification` endpoint. Never commit the server key.
 
 ## Biteship configuration
-Create a Biteship API key and configure the seller/origin postal code in `.env`:
+Create a Biteship API key and configure the seller/origin details in `.env`:
 
 ```env
 BITESHIP_API_KEY=
 BITESHIP_BASE_URL=https://api.biteship.com
 BITESHIP_ORIGIN_POSTAL_CODE=
+BITESHIP_ORIGIN_CONTACT_NAME=
+BITESHIP_ORIGIN_CONTACT_PHONE=
+BITESHIP_ORIGIN_CONTACT_EMAIL=
+BITESHIP_ORIGIN_ADDRESS=
+BITESHIP_SHIPPER_ORGANIZATION=
 BITESHIP_COURIERS=jne,jnt,sicepat,anteraja
 BITESHIP_DEFAULT_ITEM_WEIGHT_GRAMS=1000
 BITESHIP_TIMEOUT=10
+BITESHIP_WEBHOOK_SIGNATURE_KEY=X-Biteship-Signature
+BITESHIP_WEBHOOK_SIGNATURE_SECRET=
 ```
 
 The checkout requests rates from Biteship using the destination postal code and cart contents. The selected courier/service is re-quoted server-side before the order is created, so the browser cannot set an arbitrary shipping price. Product weight is currently represented by the configurable default weight per cart item; adding per-product/package dimensions is planned for a later shipping hardening phase.
+
+After payment is completed, an admin can create the Biteship shipment from the admin order page. Midtrans-paid orders also attempt automatic shipment creation from the payment webhook. The Biteship webhook endpoint is `/webhooks/biteship` and should be configured for `order.status` and `order.waybill_id` events with the same signature header key/secret configured in `.env`.
 
 For development, use a Biteship Testing/Sandbox API key and never commit the key. Rates API requests may incur provider charges even in testing mode, according to Biteship's current testing policy.
 
@@ -81,7 +94,7 @@ The seeded development account is `admin@example.com` with password `password`. 
 2. ~~Real payment gateway integration~~
 3. ~~Courier/shipping API integration~~
 4. ~~Automated testing and Midtrans hardening~~
-5. Shipping order creation, pickup, waybill and webhook tracking
+5. ~~Shipping order creation, waybill and webhook tracking~~
 6. Reporting and analytics dashboard
 7. REST API
 8. Docker + CI/CD
