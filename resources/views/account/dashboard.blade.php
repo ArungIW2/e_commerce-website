@@ -13,9 +13,9 @@
     @endif
 
     <div class="mt-8 grid gap-5 md:grid-cols-3">
-        <div class="rounded-xl border border-slate-200 bg-white p-6"><h2 class="font-semibold">Pesanan</h2><p class="mt-2 text-sm text-slate-500">Riwayat pesanan akan tersedia pada modul checkout.</p></div>
-        <div class="rounded-xl border border-slate-200 bg-white p-6"><h2 class="font-semibold">Alamat</h2><p class="mt-2 text-sm text-slate-500">Kelola alamat pengiriman pada tahap berikutnya.</p></div>
-        <div class="rounded-xl border border-slate-200 bg-white p-6"><h2 class="font-semibold">Wishlist</h2><p class="mt-2 text-sm text-slate-500">Wishlist akan diaktifkan bersama modul cart.</p></div>
+        <a href="{{ route('orders.index') }}" class="rounded-xl border border-slate-200 bg-white p-6 hover:border-indigo-300"><h2 class="font-semibold">Pesanan</h2><p class="mt-2 text-sm text-slate-500">Lihat riwayat dan status pesanan.</p></a>
+        <a href="{{ route('checkout') }}" class="rounded-xl border border-slate-200 bg-white p-6 hover:border-indigo-300"><h2 class="font-semibold">Alamat</h2><p class="mt-2 text-sm text-slate-500">Gunakan dan kelola alamat saat checkout.</p></a>
+        <a href="{{ route('wishlist.index') }}" class="rounded-xl border border-slate-200 bg-white p-6 hover:border-indigo-300"><h2 class="font-semibold">Wishlist</h2><p class="mt-2 text-sm text-slate-500">{{ auth()->user()->wishlistItems()->count() }} produk tersimpan.</p></a>
     </div>
 </div>
 @endsection
