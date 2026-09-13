@@ -14,6 +14,7 @@ class Order extends Model
     protected $fillable = [
         'user_id', 'order_number', 'status', 'subtotal', 'shipping_cost', 'shipping_method',
         'shipping_courier', 'shipping_service', 'discount', 'coupon_code', 'total', 'payment_method', 'payment_status', 'payment_token',
+        'biteship_order_id', 'biteship_tracking_id', 'shipping_status', 'shipping_tracking_url', 'shipped_at',
         'recipient_name', 'phone', 'address_line', 'city', 'state', 'postal_code',
         'tracking_number', 'cancelled_at',
     ];
@@ -22,7 +23,7 @@ class Order extends Model
     {
         return [
             'subtotal' => 'decimal:2', 'shipping_cost' => 'decimal:2', 'discount' => 'decimal:2',
-            'total' => 'decimal:2', 'cancelled_at' => 'datetime',
+            'total' => 'decimal:2', 'cancelled_at' => 'datetime', 'shipped_at' => 'datetime',
         ];
     }
 
