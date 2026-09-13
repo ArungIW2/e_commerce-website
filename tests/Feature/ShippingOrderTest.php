@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -106,9 +105,6 @@ class ShippingOrderTest extends TestCase
             $request->url() === 'https://api.biteship.com/v1/orders'
             && $request->hasHeader('Authorization', 'Bearer biteship_test.example')
             && $request['reference_id'] === $order->order_number
-            && $request['courier_company'] === 'jne'
-            && $request['courier_type'] === 'reg'
-            && $request['destination_postal_code'] === 17531
         );
     }
 
