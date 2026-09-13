@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
@@ -62,22 +63,21 @@ class ProductController extends Controller
 
     private function validated(Request $request, ?Product $product = null): array
     {
-        $uniqueSku = 'unique:products,sku' . ($product ? ',' . $product->id : '');
-        $uniqueSlug = 'unique:products,slug' . ($product ? ',' . $product->id : '');
-
+        $slug = $request->input('slug') ?: Str::slug((string) $request->input('name'));
         $data = $request->validate([
             'category_id' => ['nullable', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', $uniqueSlug],
-            'sku' => ['required', 'string', 'max:255', $uniqueSku],
+            'sku' => ['required', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product?->id)],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'image' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-
-        $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
+        validator(['slug' => $slug], [
+            'slug' => ['required', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product?->id)],
+        ])->validate();
+        $data['slug'] = $slug;
         $data['is_active'] = $request->boolean('is_active');
         return $data;
     }
