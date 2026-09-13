@@ -16,5 +16,8 @@
   "autoload": {
     "psr-4": {"App\\": "app/", "Database\\Factories\\": "database/factories/", "Database\\Seeders\\": "database/seeders/"}
   },
+  "autoload-dev": {
+    "psr-4": {"Tests\\": "tests/"}
+  },
   "scripts": {"post-autoload-dump": ["@php artisan package:discover --ansi"]}
 }
