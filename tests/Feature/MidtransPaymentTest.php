@@ -6,8 +6,8 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\MidtransPaymentGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MidtransPaymentTest extends TestCase
@@ -109,6 +109,23 @@ class MidtransPaymentTest extends TestCase
         $this->actingAs($otherUser)->get('/payments/' . $order->id)->assertForbidden();
     }
 
+    public function test_payment_page_handles_midtrans_failure_without_exposing_exception(): void
+    {
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response(['message' => 'temporary outage'], 500),
+        ]);
+
+        $user = $this->makeUser();
+        $order = $this->makeOrder($user);
+
+        $this->actingAs($user)
+            ->get('/payments/' . $order->id)
+            ->assertRedirect(route('orders.show', $order))
+            ->assertSessionHas('error');
+
+        $this->assertNull($order->fresh()->payment_token);
+    }
+
     public function test_valid_settlement_webhook_marks_order_paid(): void
     {
         $order = $this->makeOrder();
@@ -132,19 +149,37 @@ class MidtransPaymentTest extends TestCase
         $this->assertSame('unpaid', $order->fresh()->payment_status);
     }
 
+    public function test_webhook_gross_amount_mismatch_is_rejected(): void
+    {
+        $order = $this->makeOrder(total: 150000);
+        $payload = $this->signedPayload($order, 'settlement', 'accept');
+        $payload['gross_amount'] = '99999.00';
+        $payload['signature_key'] = hash(
+            'sha512',
+            $payload['order_id'] . $payload['status_code'] . $payload['gross_amount'] . config('services.midtrans.server_key')
+        );
+
+        $this->postJson('/payments/midtrans/notification', $payload)->assertUnprocessable();
+        $this->assertSame('unpaid', $order->fresh()->payment_status);
+    }
+
     public function test_webhook_statuses_are_mapped(): void
     {
         $cases = [
-            ['pending', null, 'unpaid'],
-            ['deny', null, 'failed'],
-            ['cancel', null, 'failed'],
-            ['expire', null, 'failed'],
-            ['refund', null, 'refunded'],
-            ['partial_refund', null, 'refunded'],
+            ['pending', null, 'unpaid', false],
+            ['deny', null, 'failed', false],
+            ['cancel', null, 'failed', false],
+            ['expire', null, 'failed', false],
+            ['refund', null, 'refunded', true],
+            ['partial_refund', null, 'refunded', true],
         ];
 
-        foreach ($cases as [$transaction, $fraud, $expected]) {
+        foreach ($cases as [$transaction, $fraud, $expected, $startPaid]) {
             $order = $this->makeOrder();
+            if ($startPaid) {
+                $order->update(['payment_status' => 'paid']);
+            }
+
             $payload = $this->signedPayload($order, $transaction, $fraud);
             $this->postJson('/payments/midtrans/notification', $payload)->assertOk();
             $this->assertSame($expected, $order->fresh()->payment_status, $transaction);
@@ -160,6 +195,17 @@ class MidtransPaymentTest extends TestCase
         $challenge = $this->makeOrder();
         $this->postJson('/payments/midtrans/notification', $this->signedPayload($challenge, 'capture', 'challenge'))->assertOk();
         $this->assertSame('unpaid', $challenge->fresh()->payment_status);
+    }
+
+    public function test_paid_order_ignores_late_failed_notification(): void
+    {
+        $order = $this->makeOrder();
+        $order->update(['payment_status' => 'paid', 'status' => 'processing']);
+
+        $this->postJson('/payments/midtrans/notification', $this->signedPayload($order, 'expire'))->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->payment_status);
+        $this->assertSame('processing', $order->fresh()->status);
     }
 
     private function signedPayload(Order $order, string $transactionStatus, ?string $fraudStatus = null): array
