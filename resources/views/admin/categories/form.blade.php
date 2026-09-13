@@ -1,0 +1,5 @@
+<div class="form-group"><label for="name">Name</label><input class="input" id="name" name="name" value="{{ old('name', $category->name) }}" required></div>
+<div class="form-group"><label for="slug">Slug <span class="muted">(optional)</span></label><input class="input" id="slug" name="slug" value="{{ old('slug', $category->slug) }}" placeholder="electronics"></div>
+<div class="form-group"><label for="description">Description</label><textarea class="textarea" id="description" name="description">{{ old('description', $category->description) }}</textarea></div>
+<label class="checkbox"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $category->exists ? $category->is_active : true))> Active</label>
+<div class="actions" style="margin-top:20px"><button class="btn" type="submit">{{ $category->exists ? 'Update Category' : 'Create Category' }}</button><a class="btn secondary" href="{{ route('admin.categories.index') }}">Cancel</a></div>
