@@ -22,6 +22,24 @@ class ShippingTest extends TestCase
         config()->set('services.biteship.couriers', 'jne,jnt,sicepat');
     }
 
+    private function createCartForUser(User $user): Cart
+    {
+        $product = Product::create([
+            'name' => 'Shipping Test Product',
+            'slug' => 'shipping-test-product-' . uniqid(),
+            'sku' => 'SHIP-' . uniqid(),
+            'description' => 'Product used by shipping feature tests.',
+            'price' => 100000,
+            'stock' => 10,
+            'is_active' => true,
+        ]);
+
+        $cart = Cart::create(['user_id' => $user->id]);
+        $cart->items()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        return $cart;
+    }
+
     public function test_shipping_rates_endpoint_returns_normalized_biteship_rates(): void
     {
         Http::fake([
@@ -40,10 +58,12 @@ class ShippingTest extends TestCase
             ], 200),
         ]);
 
-        $user = User::factory()->create();
-        $product = Product::factory()->create(['price' => 100000, 'stock' => 10, 'is_active' => true]);
-        $cart = Cart::create(['user_id' => $user->id]);
-        $cart->items()->create(['product_id' => $product->id, 'quantity' => 1]);
+        $user = User::create([
+            'name' => 'Shipping Test User',
+            'email' => 'shipping-' . uniqid() . '@example.com',
+            'password' => 'password',
+        ]);
+        $this->createCartForUser($user);
 
         $response = $this->actingAs($user)->getJson('/shipping/rates?postal_code=17531&payment_method=cod');
 
@@ -63,10 +83,12 @@ class ShippingTest extends TestCase
             'https://api.biteship.com/v1/rates/couriers' => Http::response(['error' => 'provider unavailable'], 500),
         ]);
 
-        $user = User::factory()->create();
-        $product = Product::factory()->create(['price' => 100000, 'stock' => 10, 'is_active' => true]);
-        $cart = Cart::create(['user_id' => $user->id]);
-        $cart->items()->create(['product_id' => $product->id, 'quantity' => 1]);
+        $user = User::create([
+            'name' => 'Shipping Error User',
+            'email' => 'shipping-error-' . uniqid() . '@example.com',
+            'password' => 'password',
+        ]);
+        $this->createCartForUser($user);
 
         $this->actingAs($user)
             ->getJson('/shipping/rates?postal_code=17531')
