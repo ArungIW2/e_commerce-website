@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contracts\PaymentGateway;
 use App\Models\Order;
+use App\Services\BiteshipShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,9 +51,24 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function notification(Request $request, PaymentGateway $gateway): JsonResponse
+    public function notification(Request $request, PaymentGateway $gateway, BiteshipShippingService $shipping): JsonResponse
     {
         $gateway->handleNotification($request->all());
+
+        $midtransOrderNumber = $request->input('order_id');
+        if ($midtransOrderNumber) {
+            $order = Order::where('order_number', $midtransOrderNumber)->first();
+            if ($order?->payment_status === 'paid' && str_starts_with($order->shipping_method, 'biteship:') && !$order->biteship_order_id) {
+                try {
+                    $shipping->syncOrderResponse($order, $shipping->createOrder($order));
+                } catch (Throwable $e) {
+                    Log::error('Automatic Biteship shipment creation after Midtrans payment failed.', [
+                        'order_id' => $order->id,
+                        'exception' => $e,
+                    ]);
+                }
+            }
+        }
 
         return response()->json(['status' => 'ok']);
     }
