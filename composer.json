@@ -11,10 +11,14 @@
     "fakerphp/faker": "^1.23",
     "laravel/pail": "^1.2",
     "laravel/pint": "^1.24",
+    "mockery/mockery": "^1.6",
     "phpunit/phpunit": "^11.5"
   },
   "autoload": {
     "psr-4": {"App\\": "app/", "Database\\Factories\\": "database/factories/", "Database\\Seeders\\": "database/seeders/"}
+  },
+  "autoload-dev": {
+    "psr-4": {"Tests\\": "tests/"}
   },
   "scripts": {"post-autoload-dump": ["@php artisan package:discover --ansi"]}
 }
