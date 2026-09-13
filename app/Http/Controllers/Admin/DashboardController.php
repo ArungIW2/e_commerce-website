@@ -16,6 +16,8 @@ class DashboardController extends Controller
             'products' => Product::count(),
             'categories' => Category::count(),
             'customers' => User::where('role', 'customer')->count(),
+            'lowStock' => Product::where('stock', '>', 0)->where('stock', '<=', 5)->count(),
+            'outOfStock' => Product::where('stock', 0)->count(),
         ]);
     }
 }
