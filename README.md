@@ -98,3 +98,5 @@ The seeded development account is `admin@example.com` with password `password`. 
 6. Reporting and analytics dashboard
 7. REST API
 8. Docker + CI/CD
+
+Phase 11.1 completes the Biteship shipment lifecycle foundation; courier pickup automation and richer parcel dimensions remain future hardening work.
