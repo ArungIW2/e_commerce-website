@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\VariantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
@@ -51,6 +52,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/products/{product}/variants', [VariantController::class, 'store'])->name('products.variants.store');
     Route::patch('/products/{product}/variants/{variant}', [VariantController::class, 'update'])->name('products.variants.update');
     Route::delete('/products/{product}/variants/{variant}', [VariantController::class, 'destroy'])->name('products.variants.destroy');
+    Route::post('/products/{product}/images', [ProductImageController::class, 'store'])->name('products.images.store');
+    Route::patch('/products/{product}/images/{image}/primary', [ProductImageController::class, 'primary'])->name('products.images.primary');
+    Route::delete('/products/{product}/images/{image}', [ProductImageController::class, 'destroy'])->name('products.images.destroy');
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
     Route::patch('/orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
