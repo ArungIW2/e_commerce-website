@@ -55,6 +55,7 @@ class ShippingOrderController extends Controller
         }
 
         $status = $payload['status'] ?? null;
+        $normalizedStatus = is_string($status) ? strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $status)) : null;
         $waybill = $payload['courier_waybill_id'] ?? data_get($payload, 'courier.waybill_id');
         $trackingId = $payload['tracking_id'] ?? data_get($payload, 'courier.tracking_id');
         $trackingUrl = $payload['courier_link'] ?? data_get($payload, 'courier.link');
@@ -66,15 +67,15 @@ class ShippingOrderController extends Controller
             'shipping_tracking_url' => $trackingUrl,
         ], static fn ($value) => $value !== null && $value !== '');
 
-        if ($status && in_array($status, ['picked', 'in_transit', 'dropping_off', 'delivered'], true)) {
+        if ($normalizedStatus && in_array($normalizedStatus, ['picked', 'in_transit', 'dropping_off', 'delivered'], true)) {
             $updates['shipped_at'] = $order->shipped_at ?? now();
         }
 
-        if ($status === 'delivered' && $order->status !== 'cancelled') {
+        if ($normalizedStatus === 'delivered' && $order->status !== 'cancelled') {
             $updates['status'] = 'completed';
-        } elseif (in_array($status, ['picked', 'in_transit', 'dropping_off'], true) && $order->status !== 'completed') {
+        } elseif ($normalizedStatus && in_array($normalizedStatus, ['picked', 'in_transit', 'dropping_off'], true) && $order->status !== 'completed') {
             $updates['status'] = 'shipped';
-        } elseif ($status === 'cancelled' && $order->status !== 'completed') {
+        } elseif ($normalizedStatus === 'cancelled' && $order->status !== 'completed') {
             $updates['status'] = 'cancelled';
             $updates['cancelled_at'] = $order->cancelled_at ?? now();
         }
