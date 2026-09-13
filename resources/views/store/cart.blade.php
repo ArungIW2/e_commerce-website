@@ -1,2 +1,13 @@
-@extends('store.layout', ['title' => 'Cart'])
-@section('content')<section class="mx-auto max-w-4xl px-6 py-16"><h1 class="text-4xl font-black">Shopping Cart</h1><div class="mt-8 rounded-2xl border bg-white p-8 text-slate-500">Your cart is empty. Cart persistence and checkout are planned for the next module.</div></section>@endsection
+@extends('store.layout', ['title' => 'Shopping Cart'])
+@section('content')
+<section class="mx-auto max-w-5xl px-6 py-16">
+    <div class="flex items-end justify-between gap-4"><div><p class="text-sm font-bold uppercase tracking-widest text-indigo-600">Shopping</p><h1 class="mt-2 text-4xl font-black">Your Cart</h1></div>@if($items->isNotEmpty())<form method="POST" action="{{ route('cart.clear') }}">@csrf @method('DELETE')<button class="text-sm font-bold text-red-600">Clear cart</button></form>@endif</div>
+    @if($items->isEmpty())
+        <div class="mt-10 rounded-2xl border bg-white p-10 text-center text-slate-500">Your cart is empty. <a class="font-bold text-indigo-600" href="{{ route('products.index') }}">Continue shopping</a>.</div>
+    @else
+        <div class="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]"><div class="space-y-4">
+            @foreach($items as $item)<article class="flex gap-5 rounded-2xl border bg-white p-5"><div class="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-slate-100">@if($item['product']->image)<img src="{{ $item['product']->image }}" class="h-full w-full object-cover">@endif</div><div class="min-w-0 flex-1"><a href="{{ route('products.show', $item['product']) }}" class="font-black hover:text-indigo-600">{{ $item['product']->name }}</a><p class="mt-1 text-sm text-slate-500">Rp {{ number_format($item['product']->price, 0, ',', '.') }}</p><div class="mt-4 flex items-center gap-3"><form method="POST" action="{{ route('cart.update', $item['product']) }}" class="flex items-center gap-2">@csrf @method('PATCH')<input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" max="{{ $item['product']->stock }}" class="w-20 rounded-lg border px-3 py-2"><button class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-bold text-white">Update</button></form><form method="POST" action="{{ route('cart.remove', $item['product']) }}">@csrf @method('DELETE')<button class="text-sm font-bold text-red-600">Remove</button></form></div></div><p class="font-black">Rp {{ number_format($item['product']->price * $item['quantity'], 0, ',', '.') }}</p></article>@endforeach
+        </div><aside class="h-fit rounded-2xl border bg-white p-6"><h2 class="text-xl font-black">Summary</h2><div class="mt-6 flex justify-between text-slate-600"><span>Subtotal</span><span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span></div><div class="mt-4 flex justify-between border-t pt-4 text-lg font-black"><span>Total</span><span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span></div><button disabled class="mt-6 w-full cursor-not-allowed rounded-xl bg-slate-300 px-5 py-3 font-bold text-white">Checkout — Coming Soon</button></aside></div>
+    @endif
+</section>
+@endsection
