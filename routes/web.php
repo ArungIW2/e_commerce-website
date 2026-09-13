@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Admin\AttributeController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\VariantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
@@ -21,14 +23,12 @@ Route::post('/cart/{product}/add', [CartController::class, 'add'])->name('cart.a
 Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/{product}', [CartController::class, 'remove'])->name('cart.remove');
 Route::delete('/cart', [CartController::class, 'clear'])->name('cart.clear');
-
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 });
-
 Route::middleware('auth')->group(function () {
     Route::get('/account', [AccountController::class, 'dashboard'])->name('account.dashboard');
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
@@ -38,11 +38,19 @@ Route::middleware('auth')->group(function () {
     Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
-
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
     Route::resource('products', ProductController::class)->except(['show']);
     Route::resource('categories', CategoryController::class)->except(['show']);
+    Route::get('/attributes', [AttributeController::class, 'index'])->name('attributes.index');
+    Route::post('/attributes', [AttributeController::class, 'store'])->name('attributes.store');
+    Route::patch('/attributes/{attribute}', [AttributeController::class, 'update'])->name('attributes.update');
+    Route::delete('/attributes/{attribute}', [AttributeController::class, 'destroy'])->name('attributes.destroy');
+    Route::post('/attributes/{attribute}/values', [AttributeController::class, 'storeValue'])->name('attributes.values.store');
+    Route::delete('/attributes/{attribute}/values/{value}', [AttributeController::class, 'destroyValue'])->name('attributes.values.destroy');
+    Route::post('/products/{product}/variants', [VariantController::class, 'store'])->name('products.variants.store');
+    Route::patch('/products/{product}/variants/{variant}', [VariantController::class, 'update'])->name('products.variants.update');
+    Route::delete('/products/{product}/variants/{variant}', [VariantController::class, 'destroy'])->name('products.variants.destroy');
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
     Route::patch('/orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');

@@ -12,4 +12,6 @@ class Product extends Model
     protected $casts = ['price' => 'decimal:2', 'is_active' => 'boolean'];
     public function category(): BelongsTo { return $this->belongsTo(Category::class); }
     public function cartItems(): HasMany { return $this->hasMany(CartItem::class); }
+    public function variants(): HasMany { return $this->hasMany(ProductVariant::class); }
+    public function hasVariants(): bool { return $this->variants()->where('is_active', true)->exists(); }
 }
