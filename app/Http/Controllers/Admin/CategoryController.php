@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
@@ -22,14 +23,7 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug'],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
-        $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
-        $data['is_active'] = $request->boolean('is_active');
+        $data = $this->validated($request);
         Category::create($data);
         return redirect()->route('admin.categories.index')->with('success', 'Category created successfully.');
     }
@@ -41,14 +35,7 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug,' . $category->id],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
-        ]);
-        $data['slug'] = $data['slug'] ?: Str::slug($data['name']);
-        $data['is_active'] = $request->boolean('is_active');
+        $data = $this->validated($request, $category);
         $category->update($data);
         return redirect()->route('admin.categories.index')->with('success', 'Category updated successfully.');
     }
@@ -57,5 +44,21 @@ class CategoryController extends Controller
     {
         $category->delete();
         return redirect()->route('admin.categories.index')->with('success', 'Category deleted successfully.');
+    }
+
+    private function validated(Request $request, ?Category $category = null): array
+    {
+        $slug = $request->input('slug') ?: Str::slug((string) $request->input('name'));
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+        validator(['slug' => $slug], [
+            'slug' => ['required', 'string', 'max:255', Rule::unique('categories', 'slug')->ignore($category?->id)],
+        ])->validate();
+        $data['slug'] = $slug;
+        $data['is_active'] = $request->boolean('is_active');
+        return $data;
     }
 }
