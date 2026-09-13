@@ -8,26 +8,24 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Eloquent ORM
 - SQLite for local development; MySQL/MariaDB recommended for production
 
-## Current foundation
-- Storefront homepage
-- Product catalog and search
-- Categories
-- Product detail pages
-- Basic cart route
-- Product/category domain models
-- Database migrations and demo seeder
+## Current features
+- Storefront homepage, catalog, categories, search and product detail
+- Customer authentication and account area
+- Persistent cart with guest-cart merge
+- Checkout, addresses, orders, cancellation and fulfillment status
+- Shipping methods, payment status and coupons
+- Product attributes, values and variants with SKU/stock/price overrides
+- Admin dashboard and catalog/inventory management
+- Product image gallery with upload, primary-image selection and deletion
 
-## Roadmap
-1. Authentication and customer accounts
-2. Persistent cart and wishlist
-3. Checkout, addresses, orders and order status
-4. Product variants, attributes and images
-5. Admin dashboard and CRUD
-6. Inventory management
-7. Coupons, promotions and tax rules
-8. Payment/shipping abstractions
-9. REST API
-10. Tests, queues, caching, Docker and CI
+## Product image storage
+Uploaded product images use Laravel's `public` filesystem disk. After installing the project, create the public storage symlink:
+
+```bash
+php artisan storage:link
+```
+
+The image manager accepts JPEG, PNG and WebP files up to 4 MB.
 
 ## Local setup
 ```bash
@@ -36,7 +34,20 @@ cp .env.example .env
 php artisan key:generate
 mkdir -p database && touch database/database.sqlite
 php artisan migrate --seed
+php artisan storage:link
 php artisan serve
 ```
 
 Then open http://localhost:8000.
+
+## Development admin
+The seeded development account is `admin@example.com` with password `password`. Change or remove these credentials before production deployment.
+
+## Roadmap
+1. Wishlist
+2. Real payment gateway integration
+3. Courier/shipping API integration
+4. Automated feature/unit tests and security hardening
+5. Reporting and analytics dashboard
+6. REST API
+7. Docker + CI/CD
