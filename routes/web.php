@@ -16,7 +16,6 @@ Route::get('/', [StorefrontController::class, 'index'])->name('home');
 Route::get('/products', [StorefrontController::class, 'products'])->name('products.index');
 Route::get('/products/{product:slug}', [StorefrontController::class, 'show'])->name('products.show');
 Route::get('/categories/{category:slug}', [StorefrontController::class, 'category'])->name('categories.show');
-
 Route::get('/cart', [CartController::class, 'index'])->name('cart');
 Route::post('/cart/{product}/add', [CartController::class, 'add'])->name('cart.add');
 Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.update');
@@ -36,6 +35,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 

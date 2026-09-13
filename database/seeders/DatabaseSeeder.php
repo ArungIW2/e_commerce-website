@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -32,5 +33,10 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        Coupon::updateOrCreate(
+            ['code' => 'WELCOME10'],
+            ['type' => 'percentage', 'value' => 10, 'minimum_order' => 100000, 'maximum_discount' => 100000, 'is_active' => true]
+        );
     }
 }
