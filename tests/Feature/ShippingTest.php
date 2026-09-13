@@ -72,7 +72,7 @@ class ShippingTest extends TestCase
             $request->url() === 'https://api.biteship.com/v1/rates/couriers'
             && $request->hasHeader('Authorization', 'Bearer biteship_test.example')
             && $request['destination_postal_code'] === 17531
-            && $request['items.0.weight'] === 1000
+            && data_get($request->data(), 'items.0.weight') === 1000
             && $request['destination_cash_on_delivery'] === 100000
         );
     }
