@@ -29,4 +29,4 @@ jobs:
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
-        run: php artisan test --without-tty
+        run: vendor/bin/phpunit --testdox
