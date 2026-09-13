@@ -25,5 +25,4 @@ class StorefrontController extends Controller
 
     public function show(Product $product) { abort_unless($product->is_active, 404); return view('store.product', compact('product')); }
     public function category(Category $category) { return view('store.products', ['products' => $category->products()->where('is_active', true)->latest()->paginate(12)]); }
-    public function cart() { return view('store.cart'); }
 }
