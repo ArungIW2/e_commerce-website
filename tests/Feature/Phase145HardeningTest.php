@@ -35,7 +35,7 @@ class Phase145HardeningTest extends TestCase
         $this->postJson('/api/v1/auth/login', [
             'email' => 'missing@example.com',
             'password' => 'wrong-password',
-        ])->assertStatus(422);
+        ])->assertUnauthorized();
     }
 
     public function test_public_product_api_hides_internal_product_state_fields_and_raw_stock(): void
