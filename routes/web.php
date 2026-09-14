@@ -19,6 +19,9 @@ use App\Http\Controllers\ShippingOrderController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\WishlistController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Response;
+
+Route::get('/healthz', fn (): Response => response('ok', 200))->name('healthz');
 
 Route::get('/', [StorefrontController::class, 'index'])->name('home');
 Route::get('/products', [StorefrontController::class, 'products'])->name('products.index');
