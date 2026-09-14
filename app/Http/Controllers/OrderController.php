@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,9 @@ class OrderController extends Controller
         DB::transaction(function () use ($order) {
             $order->load('items');
             foreach ($order->items as $item) {
-                if ($item->product_id) {
+                if ($item->product_variant_id) {
+                    ProductVariant::whereKey($item->product_variant_id)->lockForUpdate()->first()?->increment('stock', $item->quantity);
+                } elseif ($item->product_id) {
                     Product::whereKey($item->product_id)->lockForUpdate()->first()?->increment('stock', $item->quantity);
                 }
             }
