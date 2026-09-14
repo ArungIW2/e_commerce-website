@@ -26,4 +26,5 @@ class User extends Authenticatable
     public function orders(): HasMany { return $this->hasMany(Order::class); }
     public function wishlistItems(): HasMany { return $this->hasMany(WishlistItem::class); }
     public function apiTokens(): HasMany { return $this->hasMany(ApiToken::class); }
+    public function reviews(): HasMany { return $this->hasMany(ProductReview::class); }
 }
