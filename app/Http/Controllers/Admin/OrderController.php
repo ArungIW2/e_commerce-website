@@ -21,7 +21,7 @@ class OrderController extends Controller
 
     public function show(Order $order): View
     {
-        $order->load(['user', 'items']);
+        $order->load(['user', 'items', 'statusHistories']);
         return view('admin.orders.show', compact('order'));
     }
 
@@ -33,9 +33,10 @@ class OrderController extends Controller
             'tracking_number' => ['nullable', 'string', 'max:100'],
         ]);
 
+        $oldStatus = $order->status;
         $newStatus = $validated['status'];
-        if ($newStatus === 'cancelled' && $order->status !== 'cancelled') {
-            if (!in_array($order->status, ['pending', 'processing'], true)) {
+        if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+            if (!in_array($oldStatus, ['pending', 'processing'], true)) {
                 return back()->withErrors(['status' => 'Pesanan hanya dapat dibatalkan saat pending atau processing.']);
             }
             DB::transaction(function () use ($order, $validated) {
@@ -51,6 +52,7 @@ class OrderController extends Controller
                     'status' => 'cancelled', 'cancelled_at' => now(),
                     'payment_status' => $validated['payment_status'], 'tracking_number' => $validated['tracking_number'],
                 ]);
+                $order->recordStatusChange('cancelled', 'admin', 'Order cancelled by admin.');
             });
         } else {
             $order->update([
@@ -58,6 +60,9 @@ class OrderController extends Controller
                 'payment_status' => $validated['payment_status'],
                 'tracking_number' => $validated['tracking_number'],
             ]);
+            if ($oldStatus !== $newStatus) {
+                $order->recordStatusChange($newStatus, 'admin', 'Order status updated by admin.');
+            }
         }
 
         return back()->with('status', 'Status pesanan diperbarui.');
