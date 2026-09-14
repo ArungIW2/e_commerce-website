@@ -7,19 +7,21 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductImageController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\VariantController;
+use App\Http\Controllers\Api\AuthApiController;
+use App\Http\Controllers\Api\CategoryApiController;
+use App\Http\Controllers\Api\OrderApiController;
+use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ShippingController;
+use App\Http\Controllers\ShippingOrderController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\Api\AuthApiController;
-use App\Http\Controllers\Api\CategoryApiController;
-use App\Http\Controllers\Api\ProductApiController;
-use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Middleware\ApiTokenMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +35,8 @@ Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.u
 Route::delete('/cart/{product}', [CartController::class, 'remove'])->name('cart.remove');
 Route::delete('/cart', [CartController::class, 'clear'])->name('cart.clear');
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])->name('payments.notification');
+Route::post('/webhooks/biteship', [ShippingOrderController::class, 'webhook'])->name('shipping.webhook');
+
 Route::prefix('api/v1')->name('api.v1.')->group(function () {
     Route::post('/auth/register', [AuthApiController::class, 'register'])->name('auth.register');
     Route::post('/auth/login', [AuthApiController::class, 'login'])->name('auth.login');
@@ -47,12 +51,14 @@ Route::prefix('api/v1')->name('api.v1.')->group(function () {
         Route::get('/orders/{order}', [OrderApiController::class, 'show'])->name('orders.show');
     });
 });
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 });
+
 Route::middleware('auth')->group(function () {
     Route::get('/account', [AccountController::class, 'dashboard'])->name('account.dashboard');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
@@ -68,6 +74,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
+
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
     Route::resource('products', ProductController::class)->except(['show']);
@@ -87,4 +94,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
     Route::patch('/orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
+    Route::post('/orders/{order}/shipping', [ShippingOrderController::class, 'create'])->name('orders.shipping.create');
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 });
