@@ -18,8 +18,8 @@ services:
       DB_DATABASE: ecommerce
       DB_USERNAME: ecommerce
       DB_PASSWORD: ecommerce
-      CACHE_STORE: database
-      SESSION_DRIVER: database
+      CACHE_STORE: array
+      SESSION_DRIVER: file
       QUEUE_CONNECTION: database
       MIDTRANS_SERVER_KEY: test-server-key
       MIDTRANS_CLIENT_KEY: test-client-key
