@@ -17,6 +17,8 @@ class Product extends Model
     public function cartItems(): HasMany { return $this->hasMany(CartItem::class); }
     public function variants(): HasMany { return $this->hasMany(ProductVariant::class); }
     public function images(): HasMany { return $this->hasMany(ProductImage::class)->orderBy('sort_order'); }
+    public function reviews(): HasMany { return $this->hasMany(ProductReview::class); }
+    public function approvedReviews(): HasMany { return $this->reviews()->where('status', 'approved'); }
     public function primaryImage(): ?ProductImage { return $this->images()->where('is_primary', true)->first(); }
     public function hasVariants(): bool { return $this->variants()->where('is_active', true)->exists(); }
 }
