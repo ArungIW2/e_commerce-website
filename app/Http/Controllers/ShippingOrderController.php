@@ -53,13 +53,10 @@ class ShippingOrderController extends Controller
         }
 
         $payload = $request->all();
-        $eventId = (string) ($request->header('X-Biteship-Event-Id') ?: data_get($payload, 'event_id') ?: data_get($payload, 'id'));
-        $eventType = data_get($payload, 'event') ?? data_get($payload, 'event_type') ?? null;
+        $eventType = data_get($payload, 'event') ?? data_get($payload, 'event_type') ?? $request->header('X-Biteship-Event');
         $biteshipOrderId = data_get($payload, 'order_id') ?? data_get($payload, 'id');
-
-        if ($eventId === '') {
-            return response()->json(['message' => 'Webhook event id is required.'], 422);
-        }
+        $explicitEventId = $request->header('X-Biteship-Event-Id') ?: data_get($payload, 'event_id');
+        $eventId = (string) ($explicitEventId ?: hash('sha256', $request->getContent()));
 
         try {
             $event = BiteshipWebhookEvent::firstOrCreate(
@@ -79,8 +76,12 @@ class ShippingOrderController extends Controller
             return response()->json(['status' => 'already_processed']);
         }
 
+        if (!$event->wasRecentlyCreated) {
+            return response()->json(['status' => 'already_queued']);
+        }
+
         Queue::push(new ProcessBiteshipWebhook($event->id));
 
-        return response()->json(['status' => 'accepted'], 202);
+        return response()->json(['status' => 'accepted']);
     }
 }
