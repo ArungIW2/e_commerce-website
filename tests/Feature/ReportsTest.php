@@ -22,7 +22,7 @@ class ReportsTest extends TestCase
         ]);
 
         $this->actingAs($admin)->get(route('admin.reports.index'))
-            ->assertOk()->assertSee('Reports & Analytics')->assertSee('110.000');
+            ->assertOk()->assertSee('Reports &amp; Analytics', false)->assertSee('110.000');
     }
 
     public function test_customer_cannot_access_sales_report(): void
