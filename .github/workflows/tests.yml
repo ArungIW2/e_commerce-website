@@ -48,10 +48,10 @@ jobs:
       - name: Build and start Compose stack
         run: docker compose up -d --build
 
-      - name: Wait for application
+      - name: Wait for application health endpoint
         run: |
           for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:8080/ > /dev/null; then
+            if curl --fail --silent http://127.0.0.1:8080/healthz > /dev/null; then
               exit 0
             fi
             sleep 2
@@ -62,6 +62,9 @@ jobs:
 
       - name: Run database migrations
         run: docker compose exec -T app php artisan migrate --force
+
+      - name: Verify storefront after migration
+        run: curl --fail --silent --show-error http://127.0.0.1:8080/ > /dev/null
 
       - name: Verify Laravel container
         run: docker compose exec -T app php artisan about
