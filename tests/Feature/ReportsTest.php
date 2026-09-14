@@ -23,7 +23,7 @@ class ReportsTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.reports.index'))
             ->assertOk()
-            ->assertSee('Reports & Analytics')
+            ->assertSee('Reports & Analytics', false)
             ->assertSee('110.000');
     }
 
