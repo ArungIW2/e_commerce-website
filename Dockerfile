@@ -19,7 +19,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 COPY composer.json composer.lock* ./
-RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+RUN mkdir -p bootstrap/cache \
+    && chmod -R 775 bootstrap/cache \
+    && composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
 COPY . .
 
