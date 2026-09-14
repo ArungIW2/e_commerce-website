@@ -9,6 +9,7 @@ use App\Services\BiteshipShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Throwable;
@@ -59,14 +60,16 @@ class ShippingOrderController extends Controller
         $eventId = (string) ($explicitEventId ?: hash('sha256', $request->getContent()));
 
         try {
-            $event = BiteshipWebhookEvent::firstOrCreate(
-                ['event_id' => $eventId],
-                [
-                    'event_type' => is_string($eventType) ? $eventType : null,
-                    'biteship_order_id' => is_string($biteshipOrderId) ? $biteshipOrderId : null,
-                    'payload' => $payload,
-                ]
-            );
+            $now = now();
+            DB::table('biteship_webhook_events')->insertOrIgnore([
+                'event_id' => $eventId,
+                'event_type' => is_string($eventType) ? $eventType : null,
+                'biteship_order_id' => is_string($biteshipOrderId) ? $biteshipOrderId : null,
+                'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $event = BiteshipWebhookEvent::where('event_id', $eventId)->firstOrFail();
         } catch (Throwable $e) {
             Log::error('Biteship webhook event persistence failed.', ['event_id' => $eventId, 'exception' => $e]);
             return response()->json(['message' => 'Webhook could not be accepted.'], 503);
@@ -76,7 +79,7 @@ class ShippingOrderController extends Controller
             return response()->json(['status' => 'already_processed']);
         }
 
-        if (!$event->wasRecentlyCreated) {
+        if ($event->wasRecentlyCreated === false) {
             return response()->json(['status' => 'already_queued']);
         }
 
