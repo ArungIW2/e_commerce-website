@@ -39,20 +39,22 @@ class ShippingOrderController extends Controller
         $signatureKey = config('services.biteship.webhook_signature_key');
         $signatureSecret = config('services.biteship.webhook_signature_secret');
 
-        if ($signatureSecret && (! $signatureKey || ! hash_equals($signatureSecret, (string) $request->header($signatureKey)))) {
+        if (!$signatureKey || !$signatureSecret) {
+            Log::critical('Biteship webhook rejected because signature configuration is missing.');
+            return response()->json(['message' => 'Webhook authentication is not configured.'], 503);
+        }
+
+        $provided = (string) $request->header($signatureKey);
+        if (!$provided || !hash_equals($signatureSecret, $provided)) {
             return response()->json(['message' => 'Invalid webhook signature.'], 401);
         }
 
         $payload = $request->all();
         $biteshipOrderId = $payload['order_id'] ?? $payload['id'] ?? null;
-        if (!$biteshipOrderId) {
-            return response()->json(['status' => 'ignored']);
-        }
+        if (!$biteshipOrderId) return response()->json(['status' => 'ignored']);
 
         $order = Order::where('biteship_order_id', $biteshipOrderId)->first();
-        if (!$order) {
-            return response()->json(['status' => 'ignored']);
-        }
+        if (!$order) return response()->json(['status' => 'ignored']);
 
         $status = $payload['status'] ?? null;
         $normalizedStatus = is_string($status) ? strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $status)) : null;
@@ -70,7 +72,6 @@ class ShippingOrderController extends Controller
         if ($normalizedStatus && in_array($normalizedStatus, ['picked', 'in_transit', 'dropping_off', 'delivered'], true)) {
             $updates['shipped_at'] = $order->shipped_at ?? now();
         }
-
         if ($normalizedStatus === 'delivered' && $order->status !== 'cancelled') {
             $updates['status'] = 'completed';
         } elseif ($normalizedStatus && in_array($normalizedStatus, ['picked', 'in_transit', 'dropping_off'], true) && $order->status !== 'completed') {
@@ -81,7 +82,6 @@ class ShippingOrderController extends Controller
         }
 
         $order->update($updates);
-
         return response()->json(['status' => 'ok']);
     }
 }
