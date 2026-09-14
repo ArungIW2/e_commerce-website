@@ -23,6 +23,7 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Customer wishlist with duplicate protection, removal and add-to-cart flow
 - Midtrans Snap payment integration with webhook signature verification
 - Versioned REST API for catalog, authentication and customer orders
+- Verified-purchase product reviews with admin moderation and public ratings
 - Automated feature tests and GitHub Actions CI
 
 ## REST API v1
@@ -43,6 +44,11 @@ Authenticated order endpoints:
 - `GET /api/v1/orders/{id}`
 
 Send the returned token as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes and can be revoked by logging out. The API intentionally exposes customer-owned orders only; there is no public admin API.
+
+## Product reviews
+Customers can submit one review per product after a completed purchase. Reviews are marked as verified purchases and remain pending until an admin approves them. Customers can update their own review, which returns it to moderation. Only approved reviews contribute to the public rating and review count.
+
+Admin moderation is available at `/admin/reviews` with pending, approved and rejected filters.
 
 ## Product image storage
 Uploaded product images use Laravel's `public` filesystem disk. After installing the project, create the public storage symlink:
@@ -105,3 +111,4 @@ The seeded development account is `admin@example.com` with password `password`. 
 6. ~~Reporting and analytics dashboard~~
 7. ~~REST API~~
 8. Docker + CI/CD
+9. ~~Product reviews, verified purchases and moderation~~
