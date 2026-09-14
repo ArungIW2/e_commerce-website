@@ -24,6 +24,13 @@ jobs:
           extensions: mbstring, intl, pdo_sqlite, sqlite3, bcmath, zip
           coverage: none
 
+      - name: Prepare application directories
+        run: |
+          mkdir -p bootstrap/cache
+          chmod -R 775 bootstrap/cache
+          mkdir -p database
+          touch database/database.sqlite
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -31,8 +38,6 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
-          mkdir -p database
-          touch database/database.sqlite
 
       - name: Run tests
         env:
