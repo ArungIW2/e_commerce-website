@@ -20,14 +20,12 @@ class AuthApiController extends ApiController
             ->where(function ($query) {
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
-            ->orderByDesc('created_at')
+            ->orderBy('created_at')
             ->get();
 
         $tokensToRevoke = max(0, $activeTokens->count() - $maxActiveTokens + 1);
-        if ($tokensToRevoke > 0) {
-            $activeTokens->take($activeTokens->count() - $tokensToRevoke)
-                ->each(fn (ApiToken $token) => $token->forceFill(['revoked_at' => now()])->saveQuietly());
-        }
+        $activeTokens->take($tokensToRevoke)
+            ->each(fn (ApiToken $token) => $token->forceFill(['revoked_at' => now()])->saveQuietly());
 
         $plain = Str::random(80);
 
