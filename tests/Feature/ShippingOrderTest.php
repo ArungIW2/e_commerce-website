@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessBiteshipWebhook;
+use App\Models\BiteshipWebhookEvent;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ShippingOrderTest extends TestCase
@@ -29,13 +32,7 @@ class ShippingOrderTest extends TestCase
 
     private function makeOrder(array $overrides = []): Order
     {
-        $user = User::create([
-            'name' => 'Order User',
-            'email' => 'order-' . uniqid() . '@example.com',
-            'password' => 'password',
-            'role' => 'customer',
-        ]);
-
+        $user = User::create(['name' => 'Order User', 'email' => 'order-' . uniqid() . '@example.com', 'password' => 'password', 'role' => 'customer']);
         $order = Order::create(array_merge([
             'user_id' => $user->id,
             'order_number' => 'ORD-' . uniqid(),
@@ -56,15 +53,7 @@ class ShippingOrderTest extends TestCase
             'state' => 'Jawa Barat',
             'postal_code' => '17531',
         ], $overrides));
-
-        $order->items()->create([
-            'product_name' => 'Test Product',
-            'sku' => 'TEST-001',
-            'price' => 100000,
-            'quantity' => 1,
-            'line_total' => 100000,
-        ]);
-
+        $order->items()->create(['product_name' => 'Test Product', 'sku' => 'TEST-001', 'price' => 100000, 'quantity' => 1, 'line_total' => 100000]);
         return $order->fresh('user', 'items');
     }
 
@@ -72,38 +61,44 @@ class ShippingOrderTest extends TestCase
     {
         $order = $this->makeOrder();
         $admin = User::create(['name' => 'Admin', 'email' => 'admin-' . uniqid() . '@example.com', 'password' => 'password', 'role' => 'admin']);
-
-        Http::fake([
-            'https://api.biteship.com/v1/orders' => Http::response([
-                'success' => true,
-                'id' => 'bite-order-123',
-                'status' => 'confirmed',
-                'courier' => ['tracking_id' => 'tracking-123', 'waybill_id' => 'JNE123456', 'link' => 'https://tracking.example.test/JNE123456'],
-            ], 200),
-        ]);
-
-        $response = $this->actingAs($admin)->post(route('admin.orders.shipping.create', $order));
-        $response->assertRedirect();
+        Http::fake(['https://api.biteship.com/v1/orders' => Http::response(['success' => true, 'id' => 'bite-order-123', 'status' => 'confirmed', 'courier' => ['tracking_id' => 'tracking-123', 'waybill_id' => 'JNE123456', 'link' => 'https://tracking.example.test/JNE123456']], 200)]);
+        $this->actingAs($admin)->post(route('admin.orders.shipping.create', $order))->assertRedirect();
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'biteship_order_id' => 'bite-order-123', 'biteship_tracking_id' => 'tracking-123', 'tracking_number' => 'JNE123456', 'shipping_status' => 'confirmed']);
-        Http::assertSent(fn ($request) => $request->url() === 'https://api.biteship.com/v1/orders' && $request->hasHeader('Authorization', 'Bearer biteship_test.example') && $request['reference_id'] === $order->order_number);
     }
 
-    public function test_biteship_webhook_updates_tracking_idempotently(): void
+    public function test_biteship_webhook_is_persisted_and_queued_only_once(): void
     {
+        Queue::fake();
         $order = $this->makeOrder(['biteship_order_id' => 'bite-order-456']);
         $payload = ['event' => 'order.status', 'order_id' => 'bite-order-456', 'status' => 'inTransit', 'courier_waybill_id' => 'JNE999', 'courier_link' => 'https://tracking.example.test/JNE999'];
 
-        $first = $this->withHeader('X-Biteship-Signature', 'secret-value')->postJson(route('shipping.webhook'), $payload);
-        $first->assertOk()->assertJson(['status' => 'ok']);
-        $second = $this->withHeader('X-Biteship-Signature', 'secret-value')->postJson(route('shipping.webhook'), $payload);
-        $second->assertOk();
+        $this->withHeader('X-Biteship-Signature', 'secret-value')->postJson(route('shipping.webhook'), $payload)->assertOk()->assertJson(['status' => 'accepted']);
+        $this->withHeader('X-Biteship-Signature', 'secret-value')->postJson(route('shipping.webhook'), $payload)->assertOk()->assertJson(['status' => 'already_queued']);
 
-        $this->assertDatabaseHas('orders', ['id' => $order->id, 'tracking_number' => 'JNE999', 'shipping_status' => 'inTransit', 'shipping_tracking_url' => 'https://tracking.example.test/JNE999', 'status' => 'shipped']);
+        $this->assertDatabaseCount('biteship_webhook_events', 1);
+        $event = BiteshipWebhookEvent::firstOrFail();
+        Queue::assertPushed(ProcessBiteshipWebhook::class, 1, fn ($job) => $job->eventId === $event->id);
+        $this->assertSame('processing', $order->fresh()->status);
+    }
+
+    public function test_biteship_webhook_job_updates_order_once(): void
+    {
+        $order = $this->makeOrder(['biteship_order_id' => 'bite-order-789']);
+        $payload = ['event' => 'order.status', 'order_id' => 'bite-order-789', 'status' => 'inTransit', 'courier_waybill_id' => 'JNE999'];
+        $event = BiteshipWebhookEvent::create(['event_id' => hash('sha256', json_encode($payload)), 'event_type' => 'order.status', 'biteship_order_id' => 'bite-order-789', 'payload' => $payload]);
+
+        (new ProcessBiteshipWebhook($event->id))->handle();
+        $event->refresh();
+        $this->assertNotNull($event->processed_at);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'tracking_number' => 'JNE999', 'shipping_status' => 'inTransit', 'status' => 'shipped']);
+
+        (new ProcessBiteshipWebhook($event->id))->handle();
+        $this->assertSame(1, $order->fresh()->statusHistories()->count());
     }
 
     public function test_biteship_webhook_rejects_invalid_signature(): void
     {
-        $order = $this->makeOrder(['biteship_order_id' => 'bite-order-789']);
+        $order = $this->makeOrder(['biteship_order_id' => 'bite-order-invalid']);
         $this->withHeader('X-Biteship-Signature', 'wrong-secret')->postJson(route('shipping.webhook'), ['order_id' => $order->biteship_order_id, 'status' => 'delivered'])->assertStatus(401);
     }
 }
