@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => AdminMiddleware::class,
         ]);
-        $middleware->validateCsrfTokens(except: ['payments/midtrans/notification']);
+        $middleware->validateCsrfTokens(except: [
+            'payments/midtrans/notification',
+            'webhooks/biteship',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {})
     ->create();
