@@ -61,7 +61,7 @@ class ShippingOrderController extends Controller
 
         try {
             $now = now();
-            DB::table('biteship_webhook_events')->insertOrIgnore([
+            $inserted = DB::table('biteship_webhook_events')->insertOrIgnore([
                 'event_id' => $eventId,
                 'event_type' => is_string($eventType) ? $eventType : null,
                 'biteship_order_id' => is_string($biteshipOrderId) ? $biteshipOrderId : null,
@@ -79,7 +79,7 @@ class ShippingOrderController extends Controller
             return response()->json(['status' => 'already_processed']);
         }
 
-        if ($event->wasRecentlyCreated === false) {
+        if ($inserted === 0) {
             return response()->json(['status' => 'already_queued']);
         }
 
