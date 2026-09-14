@@ -42,6 +42,7 @@ class OrderController extends Controller
                 }
             }
             $order->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+            $order->recordStatusChange('cancelled', 'customer', 'Order cancelled by customer.');
         });
 
         return back()->with('status', 'Pesanan dibatalkan dan stok dikembalikan.');
