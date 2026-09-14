@@ -30,4 +30,14 @@ class Order extends Model
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function items(): HasMany { return $this->hasMany(OrderItem::class); }
     public function statusHistories(): HasMany { return $this->hasMany(OrderStatusHistory::class); }
+
+    public function recordStatusChange(string $status, string $source = 'system', ?string $note = null, array $metadata = []): void
+    {
+        $this->statusHistories()->create([
+            'status' => $status,
+            'source' => $source,
+            'note' => $note,
+            'metadata' => $metadata ?: null,
+        ]);
+    }
 }
