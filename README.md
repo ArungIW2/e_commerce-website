@@ -15,14 +15,34 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Checkout, addresses, orders, cancellation and fulfillment status
 - Live multi-courier shipping rates through Biteship
 - Shipping courier/service and shipping cost snapshots on orders
-- Shipping fallback methods retained for backwards compatibility
+- Shipping order creation, waybill and webhook tracking
 - Payment status and coupons
 - Product attributes, values and variants with SKU/stock/price overrides
 - Admin dashboard and catalog/inventory management
 - Product image gallery with upload, primary-image selection and deletion
 - Customer wishlist with duplicate protection, removal and add-to-cart flow
 - Midtrans Snap payment integration with webhook signature verification
+- Versioned REST API for catalog, authentication and customer orders
 - Automated feature tests and GitHub Actions CI
+
+## REST API v1
+Public catalog endpoints:
+- `GET /api/v1/products`
+- `GET /api/v1/products/{slug}`
+- `GET /api/v1/categories`
+- `GET /api/v1/categories/{slug}`
+
+Authentication:
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+
+Authenticated order endpoints:
+- `GET /api/v1/orders`
+- `GET /api/v1/orders/{id}`
+
+Send the returned token as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes and can be revoked by logging out. The API intentionally exposes customer-owned orders only; there is no public admin API.
 
 ## Product image storage
 Uploaded product images use Laravel's `public` filesystem disk. After installing the project, create the public storage symlink:
@@ -81,7 +101,7 @@ The seeded development account is `admin@example.com` with password `password`. 
 2. ~~Real payment gateway integration~~
 3. ~~Courier/shipping API integration~~
 4. ~~Automated testing and Midtrans hardening~~
-5. Shipping order creation, pickup, waybill and webhook tracking
-6. Reporting and analytics dashboard
-7. REST API
+5. ~~Shipping order creation, pickup, waybill and webhook tracking~~
+6. ~~Reporting and analytics dashboard~~
+7. ~~REST API~~
 8. Docker + CI/CD
