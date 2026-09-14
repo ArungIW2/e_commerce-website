@@ -8,7 +8,7 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
 WORKDIR /var/www/html
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl unzip \
+    && apt-get install -y --no-install-recommends curl libonig-dev unzip \
     && docker-php-ext-install bcmath mbstring pdo_mysql opcache \
     && a2enmod rewrite headers \
     && sed -ri "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/000-default.conf \
