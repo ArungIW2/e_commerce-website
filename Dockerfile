@@ -33,6 +33,6 @@ RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions 
 EXPOSE 80
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 \
-    CMD curl -fsS http://127.0.0.1/ || exit 1
+    CMD curl -fsS http://127.0.0.1/healthz || exit 1
 
 CMD ["apache2-foreground"]
