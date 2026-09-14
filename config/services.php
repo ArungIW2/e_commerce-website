@@ -21,4 +21,8 @@ return [
         'webhook_signature_key' => env('BITESHIP_WEBHOOK_SIGNATURE_KEY', 'X-Biteship-Signature'),
         'webhook_signature_secret' => env('BITESHIP_WEBHOOK_SIGNATURE_SECRET'),
     ],
+    'api' => [
+        'token_ttl_days' => (int) env('API_TOKEN_TTL_DAYS', 30),
+        'max_active_tokens' => (int) env('API_MAX_ACTIVE_TOKENS', 5),
+    ],
 ];
