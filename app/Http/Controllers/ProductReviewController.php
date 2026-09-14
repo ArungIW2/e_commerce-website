@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductReview;
 use Illuminate\Http\RedirectResponse;
@@ -20,15 +21,13 @@ class ProductReviewController extends Controller
             'body' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $item = $product->relationLoaded('orders')
-            ? null
-            : \App\Models\OrderItem::query()
-                ->where('product_id', $product->id)
-                ->whereHas('order', fn ($query) => $query
-                    ->where('user_id', Auth::id())
-                    ->where('status', 'completed'))
-                ->latest('order_items.id')
-                ->first();
+        $item = OrderItem::query()
+            ->where('product_id', $product->id)
+            ->whereHas('order', fn ($query) => $query
+                ->where('user_id', Auth::id())
+                ->where('status', 'completed'))
+            ->latest('order_items.id')
+            ->first();
 
         if (! $item) {
             return back()->with('error', 'You can review a product only after completing a purchase.');
