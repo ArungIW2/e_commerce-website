@@ -1,0 +1,56 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: Laravel E-Commerce
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      APP_URL: http://localhost:8080
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ecommerce
+      DB_USERNAME: ecommerce
+      DB_PASSWORD: ecommerce
+      CACHE_STORE: array
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: database
+      MIDTRANS_SERVER_KEY: test-server-key
+      MIDTRANS_CLIENT_KEY: test-client-key
+      MIDTRANS_IS_PRODUCTION: "false"
+      BITESHIP_API_KEY: ""
+      BITESHIP_WEBHOOK_SECRET: ""
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ecommerce
+      MYSQL_PASSWORD: ecommerce
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  db-data:

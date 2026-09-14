@@ -5,8 +5,12 @@ on:
     branches: [main, feature/midtrans-testing-hardening]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
+    name: PHPUnit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,3 +34,41 @@ jobs:
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
         run: vendor/bin/phpunit --testdox
+
+  docker:
+    name: Docker smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Dockerfile
+        run: docker build --check .
+
+      - name: Build and start Compose stack
+        run: docker compose up -d --build
+
+      - name: Wait for application health endpoint
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/healthz > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs app db
+          exit 1
+
+      - name: Run database migrations
+        run: docker compose exec -T app php artisan migrate --force
+
+      - name: Verify storefront after migration
+        run: curl --fail --silent --show-error http://127.0.0.1:8080/ > /dev/null
+
+      - name: Verify Laravel container
+        run: docker compose exec -T app php artisan about
+
+      - name: Shutdown Compose stack
+        if: always()
+        run: docker compose down -v
