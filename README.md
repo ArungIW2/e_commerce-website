@@ -23,7 +23,7 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Customer wishlist with duplicate protection, removal and add-to-cart flow
 - Midtrans Snap payment integration with webhook signature verification
 - Versioned REST API for catalog, authentication and customer orders
-- Automated feature tests and GitHub Actions CI
+- Automated feature tests
 
 ## REST API v1
 Public catalog endpoints:
@@ -42,7 +42,7 @@ Authenticated order endpoints:
 - `GET /api/v1/orders`
 - `GET /api/v1/orders/{id}`
 
-Send the returned token as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes and can be revoked by logging out. The API intentionally exposes customer-owned orders only; there is no public admin API.
+Send the returned token as `Authorization: Bearer <token>`. Tokens are stored as SHA-256 hashes, expire according to `API_TOKEN_TTL_DAYS`, and can be revoked by logging out. Stale revoked/expired tokens are removed by the scheduled `api-tokens:cleanup` command. The API intentionally exposes customer-owned orders only; there is no public admin API.
 
 ## Product image storage
 Uploaded product images use Laravel's `public` filesystem disk. After installing the project, create the public storage symlink:
@@ -74,11 +74,32 @@ BITESHIP_ORIGIN_POSTAL_CODE=
 BITESHIP_COURIERS=jne,jnt,sicepat,anteraja
 BITESHIP_DEFAULT_ITEM_WEIGHT_GRAMS=1000
 BITESHIP_TIMEOUT=10
+BITESHIP_WEBHOOK_SIGNATURE_KEY=X-Biteship-Signature
+BITESHIP_WEBHOOK_SIGNATURE_SECRET=
 ```
 
 The checkout requests rates from Biteship using the destination postal code and cart contents. The selected courier/service is re-quoted server-side before the order is created, so the browser cannot set an arbitrary shipping price. Product weight is currently represented by the configurable default weight per cart item; adding per-product/package dimensions is planned for a later shipping hardening phase.
 
+Biteship webhook deliveries are signature-verified, persisted with a unique event key, and dispatched to the `webhooks` queue. Repeated deliveries of the same event are acknowledged without dispatching a duplicate job. Biteship recommends fast HTTP 200 responses, queue processing for longer work, and idempotent webhook handling. citeturn0search0
+
 For development, use a Biteship Testing/Sandbox API key and never commit the key. Rates API requests may incur provider charges even in testing mode, according to Biteship's current testing policy.
+
+## Queue worker
+The application uses the database queue for asynchronous webhook processing. Run a worker with:
+
+```bash
+php artisan queue:work --queue=webhooks,default
+```
+
+In production, keep the queue worker supervised (for example with Supervisor or a container orchestrator). The scheduled API-token cleanup runs daily and requires the Laravel scheduler to be invoked by the deployment environment.
+
+Run token cleanup manually with:
+
+```bash
+php artisan api-tokens:cleanup
+```
+
+The default retention is 7 days; override it with `--days=N`.
 
 ## Local setup
 ```bash
