@@ -16,6 +16,11 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ShippingController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\Api\AuthApiController;
+use App\Http\Controllers\Api\CategoryApiController;
+use App\Http\Controllers\Api\ProductApiController;
+use App\Http\Controllers\Api\OrderApiController;
+use App\Http\Middleware\ApiTokenMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [StorefrontController::class, 'index'])->name('home');
@@ -28,6 +33,20 @@ Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.u
 Route::delete('/cart/{product}', [CartController::class, 'remove'])->name('cart.remove');
 Route::delete('/cart', [CartController::class, 'clear'])->name('cart.clear');
 Route::post('/payments/midtrans/notification', [PaymentController::class, 'notification'])->name('payments.notification');
+Route::prefix('api/v1')->name('api.v1.')->group(function () {
+    Route::post('/auth/register', [AuthApiController::class, 'register'])->name('auth.register');
+    Route::post('/auth/login', [AuthApiController::class, 'login'])->name('auth.login');
+    Route::get('/categories', [CategoryApiController::class, 'index'])->name('categories.index');
+    Route::get('/categories/{category:slug}', [CategoryApiController::class, 'show'])->name('categories.show');
+    Route::get('/products', [ProductApiController::class, 'index'])->name('products.index');
+    Route::get('/products/{product:slug}', [ProductApiController::class, 'show'])->name('products.show');
+    Route::middleware(ApiTokenMiddleware::class)->group(function () {
+        Route::get('/auth/me', [AuthApiController::class, 'me'])->name('auth.me');
+        Route::post('/auth/logout', [AuthApiController::class, 'logout'])->name('auth.logout');
+        Route::get('/orders', [OrderApiController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [OrderApiController::class, 'show'])->name('orders.show');
+    });
+});
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');
