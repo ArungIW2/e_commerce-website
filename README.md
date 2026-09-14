@@ -7,6 +7,7 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Blade + Tailwind CSS
 - Eloquent ORM
 - SQLite for local development; MySQL/MariaDB recommended for production
+- Docker for containerized deployment
 
 ## Current features
 - Storefront homepage, catalog, categories, search and product detail
@@ -24,6 +25,7 @@ A modular e-commerce platform inspired by PrestaShop, rebuilt with Laravel.
 - Midtrans Snap payment integration with webhook signature verification
 - Versioned REST API for catalog, authentication and customer orders
 - Automated feature tests and GitHub Actions CI
+- Docker image and Docker Compose deployment configuration
 
 ## REST API v1
 Public catalog endpoints:
@@ -80,6 +82,34 @@ The checkout requests rates from Biteship using the destination postal code and 
 
 For development, use a Biteship Testing/Sandbox API key and never commit the key. Rates API requests may incur provider charges even in testing mode, according to Biteship's current testing policy.
 
+## Docker
+
+Build and start the application with Docker Compose:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+The container listens on port `8000`. Set production secrets and database configuration in `.env` before deployment. Run database migrations explicitly:
+
+```bash
+docker compose exec app php artisan migrate --force
+```
+
+See [`deploy/README.md`](deploy/README.md) for deployment notes and production hardening guidance.
+
+## CI/CD
+
+GitHub Actions runs on pushes to `main` and pull requests targeting `main`:
+
+1. Install PHP 8.3 and project dependencies.
+2. Prepare a SQLite test database.
+3. Run the full Laravel test suite.
+4. Build the Docker image only after tests pass.
+
+Deployment credentials are intentionally not hard-coded. A later deployment step can be connected to the chosen hosting provider using repository secrets.
+
 ## Local setup
 ```bash
 composer install
@@ -104,4 +134,5 @@ The seeded development account is `admin@example.com` with password `password`. 
 5. ~~Shipping order creation, pickup, waybill and webhook tracking~~
 6. ~~Reporting and analytics dashboard~~
 7. ~~REST API~~
-8. Docker + CI/CD
+8. ~~Docker + CI/CD~~
+9. Production deployment + observability + security hardening
